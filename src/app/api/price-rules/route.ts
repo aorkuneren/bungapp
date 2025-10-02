@@ -10,6 +10,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Prisma bağlantısını test et ve zorla aç
+    try {
+      await prisma.$connect()
+    } catch (connectError) {
+      console.log('Prisma connection failed, retrying...', connectError)
+      // Bağlantı başarısız olursa yeni client oluştur
+      const { PrismaClient } = await import('@prisma/client')
+      const newPrisma = new PrismaClient()
+      await newPrisma.$connect()
+      // Yeni client ile devam et
+      const priceRules = await newPrisma.priceRule.findMany({
+        orderBy: [
+          { type: 'asc' },
+          { createdAt: 'asc' }
+        ]
+      })
+      await newPrisma.$disconnect()
+      return NextResponse.json(priceRules)
+    }
+    
     const priceRules = await prisma.priceRule.findMany({
       orderBy: [
         { type: 'asc' },
@@ -20,6 +40,15 @@ export async function GET() {
     return NextResponse.json(priceRules)
   } catch (error) {
     console.error('Failed to fetch price rules:', error)
+    
+    // Prisma bağlantı hatası kontrolü
+    if (error instanceof Error && error.message.includes('Engine is not yet connected')) {
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch price rules' },
       { status: 500 }

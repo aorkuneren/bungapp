@@ -2,12 +2,24 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 export async function GET() {
+  // Cache için headers ekle
+  const headers = {
+    'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+  }
   const today = new Date()
   const next7Days = new Date(today)
   next7Days.setDate(today.getDate() + 7)
 
+  // Sadece gerekli alanları seç
   const allReservations = await prisma.reservation.findMany({
-    include: {
+    select: {
+      id: true,
+      status: true,
+      checkIn: true,
+      checkOut: true,
+      totalAmount: true,
+      createdAt: true,
+      bungalowId: true,
       bungalow: { select: { name: true } }
     }
   })
@@ -75,6 +87,6 @@ export async function GET() {
     upcomingReservations,
     todaysReservations,
     recentReservations
-  })
+  }, { headers })
 }
 
