@@ -51,3 +51,8 @@ next-env.d.ts
 
 # backups
 /backups
+/.idea/bungapp.iml
+/.idea/copilot.data.migration.ask.xml
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/php.xml
+/.idea/inspectionProfiles/Project_Default.xml

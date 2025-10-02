@@ -67,7 +67,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { customerName, customerEmail, customerPhone, guests, notes, status } = body
+    const { customerName, customerEmail, customerPhone, guests, notes, status, paymentStatus } = body
 
     // Validate required fields
     if (!customerName || !customerEmail || !customerPhone || !guests) {
@@ -102,6 +102,7 @@ export async function PATCH(
         guests,
         notes,
         status: status || reservation.status,
+        paymentStatus: paymentStatus || reservation.paymentStatus || 'PENDING',
       },
       include: {
         bungalow: {

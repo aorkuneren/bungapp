@@ -38,9 +38,20 @@ const adminNavigation = [
 ]
 
 export function Header() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Session yüklenirken iskelet header göster
+  if (status === 'loading') {
+    return (
+      <header className="h-16 w-full bg-white shadow flex items-center px-4 animate-pulse">
+        <div className="w-32 h-8 bg-gray-200 rounded" />
+        <div className="flex-1" />
+        <div className="w-8 h-8 bg-gray-200 rounded-full" />
+      </header>
+    )
+  }
 
   if (!session) return null
 

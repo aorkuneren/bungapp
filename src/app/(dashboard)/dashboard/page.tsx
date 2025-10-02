@@ -1,7 +1,7 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/config'
+"use client"
+
+import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,58 +20,133 @@ import {
 } from 'lucide-react'
 import { format, addDays, isAfter, isBefore } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { useState, useTransition, useEffect } from 'react'
 
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect('/auth/login')
+function ReservationCard({ reservation }: { reservation: any }) {
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED': return 'default'
+      case 'PENDING': return 'secondary'
+      case 'CHECKED_IN': return 'default'
+      case 'CHECKED_OUT': return 'outline'
+      case 'CANCELLED': return 'destructive'
+      default: return 'secondary'
+    }
   }
 
-  // Fetch real data from database
-  const today = new Date()
-  const next7Days = addDays(today, 7)
-  const next30Days = addDays(today, 30)
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED': return 'Onaylandı'
+      case 'PENDING': return 'Beklemede'
+      case 'CHECKED_IN': return 'Giriş Yapıldı'
+      case 'CHECKED_OUT': return 'Çıkış Yapıldı'
+      case 'CANCELLED': return 'İptal'
+      default: return status
+    }
+  }
 
-  // Get all reservations
-  const allReservations = await prisma.reservation.findMany({
-    include: {
-      bungalow: {
-        select: { name: true }
+  return (
+    <Link href={`/reservations/${reservation.id}`}>
+      <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-sm">{reservation.customerName}</p>
+            <Badge variant={getStatusBadgeVariant(reservation.status)} className="text-xs">
+              {getStatusText(reservation.status)}
+            </Badge>
+          </div>
+          <p className="text-xs text-gray-500">{reservation.bungalow.name}</p>
+          <p className="text-xs text-gray-400">
+            {format(new Date(reservation.checkIn), 'dd MMM yyyy', { locale: tr })} - 
+            {format(new Date(reservation.checkOut), 'dd MMM yyyy', { locale: tr })}
+          </p>
+          <p className="text-xs font-medium text-green-600">₺{Number(reservation.totalAmount).toLocaleString()}</p>
+        </div>
+        <div className="text-right">
+          <Badge variant="outline" className="text-xs">Detay</Badge>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+export default function DashboardPage() {
+  const { data: session, status } = useSession()
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        setLoading(true)
+        console.log('Dashboard verisi yükleniyor...')
+        
+        const res = await fetch('/api/dashboard')
+        console.log('API response status:', res.status)
+        
+        if (!res.ok) {
+          const errorText = await res.text()
+          console.error('API hatası:', res.status, errorText)
+          throw new Error(`API çağrısı başarısız: ${res.status}`)
+        }
+        
+        const data = await res.json()
+        console.log('Dashboard verisi alındı:', data)
+        setDashboardData(data)
+      } catch (error) {
+        console.error('Dashboard verisi yüklenirken hata:', error)
+        setDashboardData(null)
+      } finally {
+        setLoading(false)
       }
     }
-  })
+    
+    fetchDashboard()
+  }, [])
 
-  // Get active reservations (current guests)
-  const activeReservations = allReservations.filter((r: any) => 
-    r.status === 'CHECKED_IN'
-  )
-
-  // Get upcoming reservations (next 7 days)
-  const upcomingReservations = allReservations.filter((r: any) => {
-    const checkIn = new Date(r.checkIn)
-    return r.status === 'CONFIRMED' && 
-           isAfter(checkIn, today) && 
-           isBefore(checkIn, next7Days)
-  }).sort((a: any, b: any) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
-
-  // Get recent reservations (last 5)
-  const recentReservations = allReservations
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5)
-
-  // Calculate stats
-  const totalRevenue = allReservations.reduce((sum: number, r: any) => sum + r.totalAmount.toNumber(), 0)
-  const totalBungalows = await prisma.bungalow.count()
-  const occupiedBungalows = new Set(activeReservations.map((r: any) => r.bungalowId)).size
-  const occupancyRate = totalBungalows > 0 ? Math.round((occupiedBungalows / totalBungalows) * 100) : 0
-
-  const stats = {
-    totalReservations: allReservations.length,
-    activeReservations: activeReservations.length,
-    totalRevenue,
-    occupancyRate
+  if (status === 'loading' || loading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-600">Dashboard yükleniyor...</p>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
   }
+  
+  if (!session) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login'
+    }
+    return null
+  }
+
+  if (!dashboardData) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">Dashboard verisi yüklenemedi</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Tekrar Dene
+              </button>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  const { stats, upcomingReservations, todaysReservations, recentReservations } = dashboardData
 
   return (
     <DashboardLayout>
@@ -91,7 +166,7 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalReservations}</div>
               <p className="text-xs text-muted-foreground">
-                +2 bu ay
+                +{stats.totalReservationsThisMonth} bu ay
               </p>
             </CardContent>
           </Card>
@@ -104,7 +179,7 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.activeReservations}</div>
               <p className="text-xs text-muted-foreground">
-                Şu anda dolu
+                {stats.activeReservations > 0 ? `${stats.activeReservations} dolu` : 'Boş'}
               </p>
             </CardContent>
           </Card>
@@ -117,7 +192,7 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">₺{stats.totalRevenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                +12% bu ay
+                {stats.revenueGrowth >= 0 ? `+${stats.revenueGrowth}% bu ay` : `${stats.revenueGrowth}% bu ay`}
               </p>
             </CardContent>
           </Card>
@@ -130,7 +205,7 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">%{stats.occupancyRate}</div>
               <p className="text-xs text-muted-foreground">
-                Ortalama
+                Bu ay: %{stats.occupancyRateThisMonth}
               </p>
             </CardContent>
           </Card>
@@ -176,8 +251,34 @@ export default async function DashboardPage() {
 </div>
         {/* Quick Actions and Upcoming Reservations */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-         
+          {/* Bugünün rezervasyonları */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="mr-2 h-5 w-5" />
+                Bugünün Rezervasyonları
+              </CardTitle>
+              <CardDescription>
+                Bugün giriş yapacak misafirler
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {todaysReservations.length > 0 ? (
+                  todaysReservations.map((reservation: any) => (
+                    <ReservationCard key={reservation.id} reservation={reservation} />
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <Clock className="mx-auto h-8 w-8 mb-2 text-gray-300" />
+                    <p className="text-sm">Bugün giriş yapacak rezervasyon yok</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
+          {/* Yaklaşan rezervasyonlar */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -191,29 +292,9 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {upcomingReservations.length > 0 ? (
-                  upcomingReservations.slice(0, 4).map((reservation: any) => {
-                    const checkInDate = new Date(reservation.checkIn)
-                    const daysUntil = Math.ceil((checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-                    
-                    return (
-                      <div key={reservation.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{reservation.customerName}</p>
-                          <p className="text-xs text-gray-500">{reservation.bungalow.name}</p>
-                          <p className="text-xs text-gray-400">
-                            {format(checkInDate, 'dd MMM yyyy', { locale: tr })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={daysUntil <= 1 ? "destructive" : daysUntil <= 3 ? "default" : "secondary"}>
-                            {daysUntil === 0 ? 'Bugün' : 
-                             daysUntil === 1 ? 'Yarın' : 
-                             `${daysUntil} gün`}
-                          </Badge>
-                        </div>
-                      </div>
-                    )
-                  })
+                  upcomingReservations.slice(0, 4).map((reservation: any) => (
+                    <ReservationCard key={reservation.id} reservation={reservation} />
+                  ))
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     <Clock className="mx-auto h-8 w-8 mb-2 text-gray-300" />
@@ -226,51 +307,6 @@ export default async function DashboardPage() {
                       Tümünü Görüntüle ({upcomingReservations.length})
                     </Link>
                   </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="mr-2 h-5 w-5" />
-                Son Rezervasyonlar
-              </CardTitle>
-              <CardDescription>
-                En son oluşturulan rezervasyonlar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentReservations.map((reservation: any) => (
-                  <div key={reservation.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{reservation.customerName}</p>
-                      <p className="text-xs text-gray-500">{reservation.bungalow.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {format(new Date(reservation.checkIn), 'dd MMM', { locale: tr })} - {format(new Date(reservation.checkOut), 'dd MMM', { locale: tr })}
-                      </p>
-                    </div>
-                    <Badge variant={
-                      reservation.status === 'CONFIRMED' ? 'default' :
-                      reservation.status === 'PENDING' ? 'secondary' :
-                      reservation.status === 'CHECKED_IN' ? 'destructive' :
-                      'outline'
-                    }>
-                      {reservation.status === 'CONFIRMED' ? 'Onaylandı' : 
-                       reservation.status === 'PENDING' ? 'Beklemede' :
-                       reservation.status === 'CHECKED_IN' ? 'Giriş Yapıldı' :
-                       reservation.status === 'CHECKED_OUT' ? 'Çıkış Yapıldı' :
-                       reservation.status === 'CANCELLED' ? 'İptal' : reservation.status}
-                    </Badge>
-                  </div>
-                ))}
-                {recentReservations.length === 0 && (
-                  <div className="text-center py-4 text-gray-500">
-                    <Calendar className="mx-auto h-8 w-8 mb-2 text-gray-300" />
-                    <p className="text-sm">Henüz rezervasyon yok</p>
-                  </div>
                 )}
               </div>
             </CardContent>
