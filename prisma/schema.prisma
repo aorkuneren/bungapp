@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         Role     @default(RECEPTIONIST)
+  passwordHash String
+  totpSecret   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  createdReservations Reservation[]
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+model Bungalow {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  description     String?
+  capacity        Int
+  basePrice       Decimal       @db.Decimal(12, 2)
+  priceIncludesVat Boolean      @default(true)
+  status          BungalowStatus @default(ACTIVE)
+  features        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  images       BungalowImage[]
+  reservations Reservation[]
+  priceRules   PriceRule[]
+
+  @@map("bungalows")
+}
+
+model BungalowImage {
+  id         String   @id @default(cuid())
+  bungalowId String
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  bungalow Bungalow @relation(fields: [bungalowId], references: [id], onDelete: Cascade)
+
+  @@map("bungalow_images")
+}
+
+model Customer {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  phone         String
+  address       String?
+  notes         String?
+  status        CustomerStatus @default(ACTIVE)
+  totalSpent    Decimal        @db.Decimal(12, 2) @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  reservations Reservation[]
+
+  @@map("customers")
+}
+
+model Reservation {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  bungalowId      String
+  customerId      String?          // Optional - for backward compatibility
+  customerName    String           // Keep for backward compatibility
+  customerEmail   String           // Keep for backward compatibility
+  customerPhone   String           // Keep for backward compatibility
+  checkIn         DateTime
+  checkOut        DateTime
+  nights          Int
+  guests          Int
+  baseAmount      Decimal          @db.Decimal(12, 2)
+  discountAmount  Decimal          @db.Decimal(12, 2) @default(0)
+  extrasAmount    Decimal          @db.Decimal(12, 2) @default(0)
+  taxAmount       Decimal          @db.Decimal(12, 2) @default(0)
+  totalAmount     Decimal          @db.Decimal(12, 2)
+  depositAmount   Decimal          @db.Decimal(12, 2) @default(0)
+  remainingAmount Decimal          @db.Decimal(12, 2) @default(0)
+  isManualPrice   Boolean          @default(false)
+  paymentStatus   PaymentStatus    @default(PARTIAL)
+  status          ReservationStatus @default(PENDING)
+  notes           String?
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  bungalow      Bungalow  @relation(fields: [bungalowId], references: [id])
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  createdByUser User      @relation(fields: [createdByUserId], references: [id])
+
+  @@map("reservations")
+}
+
+model PriceRule {
+  id           String      @id @default(cuid())
+  name         String
+  type         PriceRuleType
+  dateStart    DateTime?
+  dateEnd      DateTime?
+  weekdayMask  Json?
+  amountType   AmountType
+  amountValue  Decimal     @db.Decimal(12, 2)
+  appliesTo    AppliesTo   @default(GLOBAL)
+  bungalowId   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  bungalow Bungalow? @relation(fields: [bungalowId], references: [id])
+
+  @@map("price_rules")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  entity      EntityType
+  entityId    String
+  meta        Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  actorUser User @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model EmailLog {
+  id        String        @id @default(cuid())
+  to        String
+  subject   String
+  template  String
+  payload   Json?
+  messageId String?
+  status    EmailStatus   @default(SENT)
+  createdAt DateTime      @default(now())
+
+  @@map("email_logs")
+}
+
+model ReportSnapshot {
+  id          String   @id @default(cuid())
+  key         String
+  periodStart DateTime
+  periodEnd   DateTime
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@map("report_snapshots")
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, boolean, number, json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  RECEPTIONIST
+}
+
+enum BungalowStatus {
+  ACTIVE
+  PASSIVE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum PriceRuleType {
+  SEASON
+  WEEKEND
+  HOLIDAY
+  MIN_NIGHTS
+  PER_PERSON
+  CUSTOM
+}
+
+enum AmountType {
+  FIXED
+  PERCENT
+  PER_PERSON
+  NIGHTLY
+}
+
+enum AppliesTo {
+  GLOBAL
+  BUNGALOW
+}
+
+enum EntityType {
+  USER
+  BUNGALOW
+  RESERVATION
+  PRICERULE
+  SYSTEM_SETTING
+  CUSTOMER
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+}
+
+enum PaymentStatus {
+  NONE      // Hiç ödeme alınmamış
+  PARTIAL   // Kısmi ödeme alınmış (kapora)
+  COMPLETED // Tam ödeme alınmış
+}
+
+enum CustomerStatus {
+  ACTIVE    // Aktif müşteri
+  BANNED    // Banlı müşteri
+  INACTIVE  // Pasif müşteri
+}
