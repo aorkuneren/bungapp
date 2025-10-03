@@ -7,7 +7,7 @@ import { PageLoadingSpinner } from '@/components/loading-spinner'
 
 interface AuthGuardProps {
   children: React.ReactNode
-  requireAuth?: boolean
+  requireAuth: boolean // true: requires auth, false: requires no auth (e.g., login page)
 }
 
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {

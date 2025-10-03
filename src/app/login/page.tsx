@@ -144,16 +144,6 @@ export default function LoginPage() {
                 <User className="mr-2 h-4 w-4" />
                 Admin olarak devam et
               </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleQuickLogin('receptionist@bungapp.com', 'receptionist123')}
-                disabled={isLoading}
-              >
-                <User className="mr-2 h-4 w-4" />
-                Resepsiyonist olarak devam et
-              </Button>
             </div>
           </div>
         </CardContent>
