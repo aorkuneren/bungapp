@@ -729,9 +729,9 @@ export default function ReservationDetailPage() {
                         const isUnavailable = unavailableDates.includes(dateStr)
                         const isPast = dateInfo.date < new Date()
                         
-                        if (isPast) return 'bg-gray-100 text-gray-400'
-                        if (isUnavailable) return 'bg-red-100 text-red-600'
-                        return 'hover:bg-blue-50 cursor-pointer'
+                        if (isPast) return 'fc-past-date'
+                        if (isUnavailable) return 'fc-blocked-date'
+                        return 'fc-available-date'
                       }}
                       eventContent={() => null}
                       events={[]}

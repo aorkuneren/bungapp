@@ -66,3 +66,34 @@ body {
   background: hsl(var(--background));
   font-feature-settings: "rlig" 1, "calt" 1;
 }
+
+/* FullCalendar Custom Styles */
+.fc-blocked-date {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  cursor: not-allowed !important;
+}
+
+.fc-blocked-date:hover {
+  background-color: #fecaca !important;
+}
+
+.fc-past-date {
+  background-color: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+.fc-past-date:hover {
+  background-color: #e5e7eb !important;
+}
+
+.fc-available-date {
+  background-color: #f0fdf4 !important;
+  color: #16a34a !important;
+  cursor: pointer !important;
+}
+
+.fc-available-date:hover {
+  background-color: #dcfce7 !important;
+}
