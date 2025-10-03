@@ -36,6 +36,24 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
+  // Font optimization
+  optimizeFonts: true,
+  
+  // Headers for better caching
+  async headers() {
+    return [
+      {
+        source: '/_next/static/media/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
+  },
+  
   // Bundle analyzer (development only)
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config: any) => {

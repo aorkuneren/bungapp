@@ -18,7 +18,7 @@ export async function GET(
       where: { id },
       include: {
         bungalow: {
-          select: { name: true, slug: true, priceIncludesVat: true }
+          select: { id: true, name: true, slug: true, priceIncludesVat: true }
         },
         createdByUser: {
           select: { name: true, email: true }

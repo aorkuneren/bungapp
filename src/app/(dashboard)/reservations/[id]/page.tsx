@@ -5,17 +5,22 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { ArrowLeft, Calendar, User, Phone, Mail, Home, CreditCard, FileText } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Phone, Mail, Home, CreditCard, FileText, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from '@fullcalendar/interaction'
 
 interface Reservation {
   id: string
   code: string
   bungalow: {
+    id: string
     name: string
     slug: string
     priceIncludesVat: boolean
@@ -49,6 +54,12 @@ export default function ReservationDetailPage() {
   const [reservation, setReservation] = useState<Reservation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
+  const [newCheckIn, setNewCheckIn] = useState('')
+  const [newCheckOut, setNewCheckOut] = useState('')
+  const [isRescheduling, setIsRescheduling] = useState(false)
+  const [unavailableDates, setUnavailableDates] = useState<string[]>([])
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false)
   const params = useParams()
   const router = useRouter()
 
@@ -127,6 +138,144 @@ export default function ReservationDetailPage() {
       toast.error('Ödeme durumu güncelleme hatası')
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const openRescheduleDialog = async () => {
+    if (reservation) {
+      setNewCheckIn(reservation.checkIn)
+      setNewCheckOut(reservation.checkOut)
+      setShowRescheduleDialog(true)
+      
+      // Müsaitlik kontrolü yap
+      await fetchAvailability()
+    }
+  }
+
+  const fetchAvailability = async () => {
+    if (!reservation || !reservation.bungalow?.id) {
+      console.error('Reservation or bungalow ID not found:', { reservation })
+      return
+    }
+    
+    setIsLoadingAvailability(true)
+    try {
+      const startDate = new Date()
+      const endDate = new Date()
+      endDate.setMonth(endDate.getMonth() + 6) // 6 ay sonrasına kadar kontrol et
+      
+      const url = `/api/bungalows/${reservation.bungalow.id}/availability?start=${startDate.toISOString().split('T')[0]}&end=${endDate.toISOString().split('T')[0]}`
+      console.log('Fetching availability from:', url)
+      
+      const response = await fetch(url)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Availability data:', data)
+        setUnavailableDates(data.unavailableDates || [])
+      } else {
+        const errorData = await response.json()
+        console.error('Availability API error:', errorData)
+        toast.error('Müsaitlik kontrolü yapılamadı')
+      }
+    } catch (error) {
+      console.error('Failed to fetch availability:', error)
+      toast.error('Müsaitlik kontrolü hatası')
+    } finally {
+      setIsLoadingAvailability(false)
+    }
+  }
+
+  const handleReschedule = async () => {
+    if (!newCheckIn || !newCheckOut) {
+      toast.error('Lütfen yeni giriş ve çıkış tarihlerini seçin')
+      return
+    }
+
+    if (new Date(newCheckIn) >= new Date(newCheckOut)) {
+      toast.error('Çıkış tarihi giriş tarihinden sonra olmalıdır')
+      return
+    }
+
+    setIsRescheduling(true)
+    try {
+      console.log('Rescheduling reservation:', { reservationId, newCheckIn, newCheckOut })
+      
+      const url = `/api/reservations/${reservationId}/reschedule`
+      console.log('API URL:', url)
+      
+      const requestBody = {
+        checkIn: newCheckIn,
+        checkOut: newCheckOut,
+      }
+      console.log('Request body:', requestBody)
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('API Response status:', response.status)
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()))
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Reschedule success:', data)
+        
+        // Tutar farkı varsa kullanıcıya bildir
+        if (data.priceDifference) {
+          const { amount, isIncrease, isDecrease, oldTotalAmount, newTotalAmount } = data.priceDifference
+          const formattedAmount = Number(amount).toLocaleString('tr-TR')
+          const formattedOldAmount = Number(oldTotalAmount).toLocaleString('tr-TR')
+          const formattedNewAmount = Number(newTotalAmount).toLocaleString('tr-TR')
+          
+          // Önceden alınmış tutarı hesapla
+          const depositAmount = Number(data.reservation.depositAmount || 0)
+          const formattedDepositAmount = depositAmount.toLocaleString('tr-TR')
+          
+          if (isIncrease) {
+            toast.success(`Rezervasyon tarihi güncellendi. Tutar artışı: +₺${formattedAmount} (₺${formattedOldAmount} → ₺${formattedNewAmount}) | Önceden alınan: ₺${formattedDepositAmount}`)
+          } else if (isDecrease) {
+            toast.success(`Rezervasyon tarihi güncellendi. Tutar azalışı: -₺${Math.abs(Number(amount)).toLocaleString('tr-TR')} (₺${formattedOldAmount} → ₺${formattedNewAmount}) | Önceden alınan: ₺${formattedDepositAmount}`)
+          } else {
+            toast.success(`Rezervasyon tarihi güncellendi. Tutar değişmedi. | Önceden alınan: ₺${formattedDepositAmount}`)
+          }
+        } else {
+          toast.success('Rezervasyon tarihi başarıyla güncellendi')
+        }
+        
+        setShowRescheduleDialog(false)
+        fetchReservation()
+      } else {
+        const errorText = await response.text()
+        console.error('Reschedule API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText,
+          url: url
+        })
+        
+        let errorMessage = 'Rezervasyon tarihi güncellenemedi'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorMessage
+          console.error('Parsed error data:', errorData)
+        } catch (e) {
+          console.error('Failed to parse error response:', e)
+          console.error('Raw error text:', errorText)
+        }
+        
+        console.error('Final error message:', errorMessage)
+        toast.error(errorMessage)
+      }
+    } catch (error) {
+      console.error('Failed to reschedule reservation:', error)
+      toast.error('Rezervasyon erteleme hatası')
+    } finally {
+      setIsRescheduling(false)
     }
   }
 
@@ -323,7 +472,7 @@ export default function ReservationDetailPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-wrap gap-3">
                     {getStatusActions(reservation.status).map((action) => (
                       <Button
                         key={action.status}
@@ -334,6 +483,14 @@ export default function ReservationDetailPage() {
                         {action.label}
                       </Button>
                     ))}
+                    <Button
+                      onClick={openRescheduleDialog}
+                      variant="outline"
+                      className="flex items-center"
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Rezervasyonu Ertle
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -467,6 +624,145 @@ export default function ReservationDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Rezervasyon Ertleme Modal */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Clock className="mr-2 h-5 w-5" />
+              Rezervasyonu Ertle
+            </DialogTitle>
+            <DialogDescription>
+              Müsait günleri seçerek rezervasyon tarihlerini güncelleyin. Kırmızı günler müsait değildir.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {isLoadingAvailability ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Müsaitlik kontrol ediliyor...</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Seçilen Tarihler:</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Giriş Tarihi</label>
+                      <p className="text-lg font-semibold text-blue-600">
+                        {newCheckIn ? format(new Date(newCheckIn), 'dd MMMM yyyy', { locale: tr }) : 'Seçilmedi'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Çıkış Tarihi</label>
+                      <p className="text-lg font-semibold text-blue-600">
+                        {newCheckOut ? format(new Date(newCheckOut), 'dd MMMM yyyy', { locale: tr }) : 'Seçilmedi'}
+                      </p>
+                    </div>
+                  </div>
+                  {newCheckIn && newCheckOut && (
+                    <div className="mt-3 bg-blue-50 p-3 rounded-md">
+                      <p className="text-sm text-blue-800">
+                        <strong>Yeni süre:</strong> {Math.ceil((new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24))} gece
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Mevcut rezervasyon bilgileri */}
+                  <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Mevcut Rezervasyon Bilgileri:</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Mevcut Süre:</span>
+                        <span className="ml-2 font-medium">{reservation.nights} gece</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Mevcut Tutar:</span>
+                        <span className="ml-2 font-medium">₺{Number(reservation.totalAmount).toLocaleString('tr-TR')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Önceden Alınan:</span>
+                        <span className="ml-2 font-medium">₺{Number(reservation.depositAmount || 0).toLocaleString('tr-TR')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Kalan Ödeme:</span>
+                        <span className="ml-2 font-medium">₺{Number(reservation.remainingAmount || 0).toLocaleString('tr-TR')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Müsait Günleri Seçin:</h4>
+                  <div className="min-h-[400px]">
+                    <FullCalendar
+                      plugins={[dayGridPlugin, interactionPlugin]}
+                      initialView="dayGridMonth"
+                      selectable={true}
+                      selectMirror={true}
+                      dayMaxEvents={true}
+                      weekends={true}
+                      locale="tr"
+                      height="auto"
+                      select={(selectInfo) => {
+                        const start = selectInfo.start
+                        const end = selectInfo.end
+                        
+                        // Müsaitlik kontrolü
+                        const isUnavailable = unavailableDates.some(date => {
+                          const checkDate = new Date(date)
+                          return checkDate >= start && checkDate < end
+                        })
+                        
+                        if (isUnavailable) {
+                          toast.error('Seçilen tarih aralığında müsait olmayan günler var')
+                          return
+                        }
+                        
+                        setNewCheckIn(start.toISOString().split('T')[0])
+                        setNewCheckOut(end.toISOString().split('T')[0])
+                      }}
+                      dayCellClassNames={(dateInfo) => {
+                        const dateStr = dateInfo.date.toISOString().split('T')[0]
+                        const isUnavailable = unavailableDates.includes(dateStr)
+                        const isPast = dateInfo.date < new Date()
+                        
+                        if (isPast) return 'bg-gray-100 text-gray-400'
+                        if (isUnavailable) return 'bg-red-100 text-red-600'
+                        return 'hover:bg-blue-50 cursor-pointer'
+                      }}
+                      eventContent={() => null}
+                      events={[]}
+                      headerToolbar={{
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: ''
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRescheduleDialog(false)}
+              disabled={isRescheduling}
+            >
+              İptal
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={isRescheduling || !newCheckIn || !newCheckOut || isLoadingAvailability}
+            >
+              {isRescheduling ? 'Güncelleniyor...' : 'Rezervasyonu Güncelle'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }
