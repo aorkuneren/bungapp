@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { User } from 'lucide-react'
+import { AuthGuard } from '@/components/auth/auth-guard'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -73,7 +74,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <AuthGuard requireAuth={false}>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
@@ -156,6 +158,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }

@@ -5,6 +5,25 @@ import { verify } from 'argon2'
 import { LoginSchema } from '@/lib/validation/schemas'
 
 export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.sub || ''
+        session.user.role = token.role as string
+      }
+      return session
+    },
+  },
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -51,24 +70,6 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub!
-        session.user.role = token.role as string
-      }
-      return session
-    },
-  },
-  pages: {
-    signIn: '/auth/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
