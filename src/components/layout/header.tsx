@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -41,33 +41,6 @@ export function Header() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userInfo, setUserInfo] = useState<{ name: string; email: string; role: string } | null>(null)
-
-  // Kullanıcı bilgilerini çek
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchUserInfo()
-    }
-  }, [session?.user?.id])
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await fetch('/api/users')
-      if (response.ok) {
-        const users = await response.json()
-        const currentUser = users.find((user: any) => user.id === session?.user?.id)
-        if (currentUser) {
-          setUserInfo({
-            name: currentUser.name,
-            email: currentUser.email,
-            role: currentUser.role
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch user info:', error)
-    }
-  }
 
   // Session yüklenirken iskelet header göster
   if (status === 'loading') {
@@ -82,7 +55,7 @@ export function Header() {
 
   if (!session) return null
 
-  const isAdmin = (userInfo?.role || session.user?.role) === 'ADMIN'
+  const isAdmin = session.user?.role === 'ADMIN'
   const allNavigation = isAdmin ? [...navigation, ...adminNavigation] : navigation
 
   return (
@@ -124,9 +97,9 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {/* User Info */}
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-gray-900">{userInfo?.name || session.user?.name}</p>
+              <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
               <p className="text-xs text-gray-500">
-                {(userInfo?.role || session.user?.role) === 'ADMIN' ? 'Yönetici' : 'Resepsiyonist'}
+                {session.user?.role === 'ADMIN' ? 'Yönetici' : 'Resepsiyonist'}
               </p>
             </div>
 
@@ -140,9 +113,9 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{userInfo?.name || session.user?.name}</p>
+                    <p className="font-medium">{session.user?.name}</p>
                     <p className="w-[200px] text-sm text-muted-foreground">
-                      {userInfo?.email || session.user?.email}
+                      {session.user?.email}
                     </p>
                   </div>
                 </div>

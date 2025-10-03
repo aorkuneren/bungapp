@@ -618,7 +618,7 @@ export default function SettingsPage() {
                               type="radio"
                               id="pricesIncludeVat-true"
                               name="pricesIncludeVat"
-                              checked={systemSettings.pricesIncludeVat === true || systemSettings.pricesIncludeVat === 'true'}
+                              checked={systemSettings.pricesIncludeVat === true}
                               onChange={() => updateSystemSetting('pricesIncludeVat', true)}
                               className="rounded"
                             />
@@ -631,7 +631,7 @@ export default function SettingsPage() {
                               type="radio"
                               id="pricesIncludeVat-false"
                               name="pricesIncludeVat"
-                              checked={systemSettings.pricesIncludeVat === false || systemSettings.pricesIncludeVat === 'false'}
+                              checked={systemSettings.pricesIncludeVat === false}
                               onChange={() => updateSystemSetting('pricesIncludeVat', false)}
                               className="rounded"
                             />
