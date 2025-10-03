@@ -119,6 +119,15 @@ body {
   z-index: 9998 !important;
 }
 
+/* Additional CSS fixes */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 /* Ensure proper stacking context */
 .relative {
   position: relative;

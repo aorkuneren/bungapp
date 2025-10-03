@@ -175,8 +175,9 @@ export async function GET(request: NextRequest) {
     if (!redisClient) {
       return NextResponse.json({
         connected: false,
-        error: 'Redis bağlantısı bulunamadı'
-      })
+        error: 'Redis bağlantısı bulunamadı',
+        message: 'Redis URL tanımlanmamış veya Redis servisi mevcut değil'
+      }, { status: 200 }) // 200 olarak döndür, 500 değil
     }
 
     try {
