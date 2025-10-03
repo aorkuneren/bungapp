@@ -279,6 +279,45 @@ npm run build
 
 ## 🚀 Production Deployment
 
+### Vercel + Neon Deployment
+
+#### 1. Neon Veritabanı Kurulumu
+1. [neon.tech](https://neon.tech) hesabı oluşturun
+2. Yeni database oluşturun
+3. Connection string'i kopyalayın
+
+#### 2. Vercel Deployment
+1. [vercel.com](https://vercel.com) hesabı oluşturun
+2. GitHub repository'nizi bağlayın
+3. Environment variables ekleyin:
+
+```env
+# Database (Neon)
+DATABASE_URL="postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
+# Auth
+NEXTAUTH_URL="https://your-app-name.vercel.app"
+NEXTAUTH_SECRET="strong-random-secret-for-production"
+
+# Email (opsiyonel)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+
+# S3 (opsiyonel)
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET="your-bucket-name"
+```
+
+#### 3. Otomatik Deployment
+- Her `git push` ile otomatik deploy
+- Prisma migration'ları otomatik çalışır
+- Build hatalarını Vercel dashboard'da kontrol edin
+
 ### Environment Variables (Production)
 ```env
 # Database

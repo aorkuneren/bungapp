@@ -4,12 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --turbopack",
-    "build:analyze": "ANALYZE=true next build --turbopack",
+    "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "postinstall": "prisma generate",
     "perf:test": "npm run build && npm run start",
     "perf:lighthouse": "lighthouse http://localhost:3000 --output=html --output-path=./lighthouse-report.html"
   },
