@@ -47,6 +47,12 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      zIndex: {
+        'modal': '9999',
+        'overlay': '9998',
+        'dropdown': '9999',
+        'select': '9999',
+      },
     },
   },
   plugins: [],

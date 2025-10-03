@@ -97,3 +97,37 @@ body {
 .fc-available-date:hover {
   background-color: #dcfce7 !important;
 }
+
+/* Z-Index Fixes for Modals and Dropdowns */
+[data-radix-portal] {
+  z-index: 9999 !important;
+}
+
+[data-radix-select-content] {
+  z-index: 9999 !important;
+}
+
+[data-radix-dropdown-menu-content] {
+  z-index: 9999 !important;
+}
+
+[data-radix-dialog-content] {
+  z-index: 9999 !important;
+}
+
+[data-radix-dialog-overlay] {
+  z-index: 9998 !important;
+}
+
+/* Ensure proper stacking context */
+.relative {
+  position: relative;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.absolute {
+  position: absolute;
+}
