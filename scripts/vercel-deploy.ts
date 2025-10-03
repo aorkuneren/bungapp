@@ -11,7 +11,7 @@ async function deployToVercel() {
     execSync('npx prisma generate', { stdio: 'inherit' })
     
     // Migration'ları deploy et
-    console.log('🗄️ Migration'lar deploy ediliyor...')
+    console.log('🗄️ Migrationlar deploy ediliyor...')
     execSync('npx prisma migrate deploy', { stdio: 'inherit' })
     
     console.log('✅ Deployment başarılı!')

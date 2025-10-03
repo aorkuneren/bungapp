@@ -11,7 +11,7 @@ async function main() {
     console.log('✅ Veritabanı bağlantısı başarılı!')
     
     // Migration'ları çalıştır
-    console.log('📦 Migration'lar çalıştırılıyor...')
+    console.log('📦 Migrationlar çalıştırılıyor...')
     // Bu komut Vercel'de otomatik çalışacak
     
     console.log('🎉 Deployment hazır!')
