@@ -15,7 +15,7 @@ async function buildHook() {
     console.log('✅ Veritabanı bağlantısı başarılı!')
     
     // Migration'ları deploy et
-    console.log('🗄️ Migration'lar deploy ediliyor...')
+    console.log('🗄️ Migrationlar deploy ediliyor...')
     
     console.log('🎉 Build hook tamamlandı!')
   } catch (error) {
