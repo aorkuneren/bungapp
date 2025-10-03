@@ -37,17 +37,27 @@ const nextConfig: NextConfig = {
     ]
   },
   
-  // Bundle analyzer (development only)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config: any) => {
+  // Webpack configuration
+  webpack: (config: any) => {
+    // NextAuth module resolution fix
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    }
+    
+    // Bundle analyzer (development only)
+    if (process.env.ANALYZE === 'true') {
       config.plugins.push(
         new (require('@next/bundle-analyzer'))({
           enabled: true,
         })
       )
-      return config
-    },
-  }),
+    }
+    
+    return config
+  },
   
   // Caching and performance
   onDemandEntries: {
