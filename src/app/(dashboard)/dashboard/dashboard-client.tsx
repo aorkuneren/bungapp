@@ -18,6 +18,7 @@ import {
 import { format, addDays, isAfter, isBefore } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { PageLoadingSpinner } from '@/components/loading-spinner'
+import { formatCurrencyWithSymbol } from '@/lib/utils/format'
 
 // Status mapping'i component dışına çıkarıp memoize edelim
 const STATUS_CONFIG = {
@@ -49,7 +50,7 @@ function ReservationCard({ reservation }: { reservation: any }) {
             {format(new Date(reservation.checkIn), 'dd MMM yyyy', { locale: tr })} - 
             {format(new Date(reservation.checkOut), 'dd MMM yyyy', { locale: tr })}
           </p>
-          <p className="text-xs font-medium text-green-600">₺{Number(reservation.totalAmount).toLocaleString()}</p>
+          <p className="text-xs font-medium text-green-600">{formatCurrencyWithSymbol(reservation.totalAmount)}</p>
         </div>
         <div className="text-right">
           <Badge variant="outline" className="text-xs">Detay</Badge>
@@ -181,7 +182,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₺{stats.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrencyWithSymbol(stats.totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               {stats.revenueGrowth > 0 ? '+' : ''}{stats.revenueGrowth}% geçen aya göre
             </p>
