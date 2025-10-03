@@ -294,7 +294,7 @@ export default function NewReservationPage() {
         // Manuel fiyat kullanılıyorsa onu kullan, yoksa otomatik hesaplanmış fiyatı kullan
         manualPrice: useManualPrice && manualPrice ? parseFloat(manualPrice) : null,
         depositAmount: depositAmount ? parseFloat(depositAmount) : 0,
-        // Toplam tutarı belirle
+        // Toplam tutarı belirle - manuel fiyat varsa onu kullan
         totalAmount: useManualPrice && manualPrice ? parseFloat(manualPrice) : pricing?.totalAmount || 0,
       }
 
@@ -884,20 +884,60 @@ export default function NewReservationPage() {
             <CardTitle>Ödeme Özeti</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {useManualPrice && (
-                <div className="bg-yellow-50 p-3 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-yellow-800">Manuel Fiyat Kullanılıyor</span>
-                  </div>
-                  <div className="text-xs text-yellow-700">
-                    Otomatik hesaplanan: ₺{pricing?.totalAmount.toLocaleString() || '0'}
-                  </div>
+            <div className="space-y-6">
+              {/* Manuel Fiyat Seçeneği */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="useManualPrice"
+                    checked={useManualPrice}
+                    onChange={(e) => setUseManualPrice(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <Label htmlFor="useManualPrice" className="text-sm font-medium">
+                    Manuel tutar kullan
+                  </Label>
                 </div>
-              )}
 
+                {useManualPrice && (
+                  <div className="space-y-2">
+                    <Label htmlFor="manualPrice">Manuel Tutar (₺)</Label>
+                    <Input
+                      id="manualPrice"
+                      type="number"
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      placeholder="Manuel tutar girin"
+                      min="0"
+                      step="0.01"
+                    />
+                    {pricing && (
+                      <p className="text-xs text-gray-500">
+                        Otomatik hesaplanan: ₺{pricing.totalAmount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Kapora Girişi */}
               <div className="space-y-2">
+                <Label htmlFor="depositAmount">Kapora Tutarı (₺)</Label>
+                <Input
+                  id="depositAmount"
+                  type="number"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="Kapora tutarı girin"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+
+              {/* Ödeme Özeti */}
+              <div className="space-y-2 border-t pt-4">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Toplam tutar:</span>
                   <span className="font-medium">
@@ -920,12 +960,12 @@ export default function NewReservationPage() {
 
               {(depositAmount && parseFloat(depositAmount) > 0) && (
                 <div className="bg-green-50 p-3 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex items-center space-x-2 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-sm font-medium text-green-800">Kapora Alındı</span>
                   </div>
                   <div className="text-xs text-green-700">
-                    ₺{parseFloat(depositAmount).toLocaleString()} kapora tutarı alınmıştır
+                    Kapora: ₺{parseFloat(depositAmount).toLocaleString()}
                   </div>
                 </div>
               )}

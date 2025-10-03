@@ -399,18 +399,16 @@ export default function ReservationDetailPage() {
                     
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Alınan Kapora</span>
-                      <span>₺{reservation.depositAmount?.toLocaleString() || '0'}</span>
+                      <span>₺{(reservation.depositAmount || 0).toLocaleString()}</span>
                     </div>
                     
                     <div className="flex justify-between font-semibold text-orange-600 border-t pt-2">
                       <span>Kalan Ödeme</span>
-                      <span>₺{reservation.remainingAmount?.toLocaleString() || '0'}</span>
+                      <span>₺{(reservation.remainingAmount || 0).toLocaleString()}</span>
                     </div>
                     
                     {/* Kalan Ödeme Alındı Butonu */}
-                    {reservation.paymentStatus !== 'COMPLETED' && 
-                     reservation.remainingAmount && 
-                     reservation.remainingAmount > 0 && (
+                    {(reservation.remainingAmount ?? 0) > 0 && (
                       <div className="mt-4 pt-3 border-t">
                         <Button
                           onClick={markPaymentReceived}
@@ -426,7 +424,7 @@ export default function ReservationDetailPage() {
                       </div>
                     )}
                     
-                    {reservation.paymentStatus === 'COMPLETED' && (
+                    {reservation.remainingAmount === 0 && (
                       <div className="mt-4 pt-3 border-t">
                         <div className="bg-green-50 p-3 rounded-lg">
                           <div className="flex items-center space-x-2">
