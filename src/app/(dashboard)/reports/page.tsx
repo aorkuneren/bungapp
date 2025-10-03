@@ -50,7 +50,7 @@ export default async function ReportsPage() {
       bungalow: {
         select: { 
           name: true, 
-          price: true,
+          basePrice: true,
           status: true
         }
       },
