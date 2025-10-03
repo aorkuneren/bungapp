@@ -20,6 +20,7 @@ export async function GET() {
       totalAmount: true,
       createdAt: true,
       bungalowId: true,
+      customerName: true,
       bungalow: { select: { name: true } }
     }
   })
