@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         email: validatedData.email,
         passwordHash: hashedPassword,
-        role: validatedData.role,
+        role: validatedData.role as 'ADMIN' | 'RECEPTIONIST',
       },
       select: {
         id: true,

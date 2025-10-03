@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -58,7 +58,7 @@ interface Customer {
 
 type Step = 'bungalow' | 'calendar' | 'customer' | 'confirmation'
 
-export default function NewReservationPage() {
+function NewReservationPageContent() {
   const [currentStep, setCurrentStep] = useState<Step>('bungalow')
   const [bungalows, setBungalows] = useState<Bungalow[]>([])
   const [selectedBungalow, setSelectedBungalow] = useState<Bungalow | null>(null)
@@ -1069,5 +1069,13 @@ export default function NewReservationPage() {
         {currentStep === 'confirmation' && renderConfirmation()}
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function NewReservationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewReservationPageContent />
+    </Suspense>
   )
 }

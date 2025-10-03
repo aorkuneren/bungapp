@@ -14,12 +14,12 @@ const createPrismaClient = () => {
       },
     },
     // Connection pooling ve timeout ayarları
-    __internal: {
-      engine: {
-        connectTimeout: 30000,
-        queryTimeout: 30000,
-      },
-    },
+    // __internal: {
+    //   engine: {
+    //     connectTimeout: 30000,
+    //     queryTimeout: 30000,
+    //   },
+    // },
   })
 }
 

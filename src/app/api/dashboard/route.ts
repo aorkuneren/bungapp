@@ -2,16 +2,32 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 export async function GET() {
-  // Cache için headers ekle
+  // Cache için headers ekle - daha agresif caching
   const headers = {
-    'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
   }
   const today = new Date()
   const next7Days = new Date(today)
   next7Days.setDate(today.getDate() + 7)
 
-  // Sadece gerekli alanları seç
+  // Sadece gerekli alanları seç ve tarih aralığını sınırla
   const allReservations = await prisma.reservation.findMany({
+    where: {
+      OR: [
+        { status: 'CHECKED_IN' },
+        { 
+          checkIn: { 
+            gte: new Date(today.getFullYear(), today.getMonth() - 1, 1),
+            lte: next7Days
+          }
+        },
+        { 
+          createdAt: { 
+            gte: new Date(today.getFullYear(), today.getMonth() - 1, 1)
+          }
+        }
+      ]
+    },
     select: {
       id: true,
       status: true,
@@ -22,7 +38,8 @@ export async function GET() {
       bungalowId: true,
       customerName: true,
       bungalow: { select: { name: true } }
-    }
+    },
+    orderBy: { createdAt: 'desc' }
   })
 
   const activeReservations = allReservations.filter(r => r.status === 'CHECKED_IN')

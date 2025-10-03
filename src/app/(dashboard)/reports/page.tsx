@@ -135,6 +135,9 @@ export default async function ReportsPage() {
     })
   }
 
+  // Find the maximum revenue for proper scaling
+  const maxRevenue = Math.max(...revenueData.map(item => item.revenue))
+
   // Generate occupancy data by bungalow
   const occupancyData = bungalows.map(bungalow => {
     const bungalowReservations = allReservations.filter(r => r.bungalowId === bungalow.id)
@@ -276,7 +279,7 @@ export default async function ReportsPage() {
                       <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                         <div 
                           className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${(item.revenue / 60000) * 100}%` }}
+                          style={{ width: `${maxRevenue > 0 ? Math.min((item.revenue / maxRevenue) * 100, 100) : 0}%` }}
                         ></div>
                       </div>
                     </div>

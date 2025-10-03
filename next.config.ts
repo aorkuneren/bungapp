@@ -27,6 +27,8 @@ const nextConfig: NextConfig = {
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+    // Remove unused CSS
+    styledComponents: true,
   },
   
   // Image optimization
@@ -36,8 +38,7 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
-  // Font optimization
-  optimizeFonts: true,
+  // Font optimization (Next.js 15'te otomatik)
   
   // Headers for better caching
   async headers() {
