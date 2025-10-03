@@ -612,32 +612,37 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <Label>Varsayılan Fiyat Durumu</Label>
-                        <div className="flex items-center space-x-6">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="pricesIncludeVat-true"
-                              name="pricesIncludeVat"
-                              checked={systemSettings.pricesIncludeVat === true}
-                              onChange={() => updateSystemSetting('pricesIncludeVat', true)}
-                              className="rounded"
+                        <div className="flex items-center space-x-4">
+                          <button
+                            type="button"
+                            onClick={() => updateSystemSetting('pricesIncludeVat', !systemSettings.pricesIncludeVat)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              systemSettings.pricesIncludeVat === true || systemSettings.pricesIncludeVat === 'true'
+                                ? 'bg-blue-600'
+                                : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                systemSettings.pricesIncludeVat === true || systemSettings.pricesIncludeVat === 'true'
+                                  ? 'translate-x-6'
+                                  : 'translate-x-1'
+                              }`}
                             />
-                            <Label htmlFor="pricesIncludeVat-true" className="text-sm font-normal">
-                              Fiyatlar KDV Dahil
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="pricesIncludeVat-false"
-                              name="pricesIncludeVat"
-                              checked={systemSettings.pricesIncludeVat === false}
-                              onChange={() => updateSystemSetting('pricesIncludeVat', false)}
-                              className="rounded"
-                            />
-                            <Label htmlFor="pricesIncludeVat-false" className="text-sm font-normal">
-                              Fiyatlar KDV Hariç
-                            </Label>
+                          </button>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">
+                              {systemSettings.pricesIncludeVat === true || systemSettings.pricesIncludeVat === 'true'
+                                ? 'KDV Dahil'
+                                : 'KDV Hariç'
+                              }
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {systemSettings.pricesIncludeVat === true || systemSettings.pricesIncludeVat === 'true'
+                                ? 'Fiyatlar KDV dahil gösterilir'
+                                : 'Fiyatlar KDV hariç gösterilir'
+                              }
+                            </span>
                           </div>
                         </div>
                         <p className="text-xs text-gray-500">
