@@ -47,6 +47,23 @@ const nextConfig: NextConfig = {
       tls: false,
     }
     
+    // Fix vendor chunks issue in Next.js 15
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        ...config.optimization?.splitChunks,
+        cacheGroups: {
+          ...config.optimization?.splitChunks?.cacheGroups,
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      },
+    }
+    
     // Bundle analyzer (development only)
     if (process.env.ANALYZE === 'true') {
       config.plugins.push(

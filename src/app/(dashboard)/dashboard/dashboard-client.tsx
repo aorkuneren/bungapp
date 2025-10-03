@@ -15,8 +15,7 @@ import {
   Clock,
   TrendingUp as TrendingUpIcon
 } from 'lucide-react'
-import { format, addDays, isAfter, isBefore } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { PageLoadingSpinner } from '@/components/loading-spinner'
 import { formatCurrencyWithSymbol } from '@/lib/utils/format'
 
@@ -47,8 +46,8 @@ function ReservationCard({ reservation }: { reservation: any }) {
           </div>
           <p className="text-xs text-gray-500">{reservation.bungalow.name}</p>
           <p className="text-xs text-gray-400">
-            {format(new Date(reservation.checkIn), 'dd MMM yyyy', { locale: tr })} - 
-            {format(new Date(reservation.checkOut), 'dd MMM yyyy', { locale: tr })}
+            {format(new Date(reservation.checkIn), 'dd MMM yyyy')} - 
+            {format(new Date(reservation.checkOut), 'dd MMM yyyy')}
           </p>
           <p className="text-xs font-medium text-green-600">{formatCurrencyWithSymbol(reservation.totalAmount)}</p>
         </div>
