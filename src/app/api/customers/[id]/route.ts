@@ -24,6 +24,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Prisma bağlantısını test et
+    await prisma.$connect()
+
     const { id } = await params
     const customer = await prisma.customer.findUnique({
       where: { id },
@@ -57,6 +60,15 @@ export async function GET(
     return NextResponse.json(customer)
   } catch (error) {
     console.error('Error fetching customer:', error)
+    
+    // Prisma bağlantı hatası kontrolü
+    if (error instanceof Error && error.message.includes('Engine is not yet connected')) {
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -71,6 +83,9 @@ export async function PATCH(
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Prisma bağlantısını test et
+    await prisma.$connect()
 
     const { id } = await params
     const body = await request.json()
@@ -124,6 +139,14 @@ export async function PATCH(
     return NextResponse.json(updatedCustomer)
   } catch (error) {
     console.error('Error updating customer:', error)
+    
+    // Prisma bağlantı hatası kontrolü
+    if (error instanceof Error && error.message.includes('Engine is not yet connected')) {
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 503 }
+      )
+    }
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

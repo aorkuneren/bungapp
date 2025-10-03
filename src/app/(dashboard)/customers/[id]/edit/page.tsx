@@ -78,23 +78,36 @@ export default function CustomerEditPage({ params }: CustomerEditPageProps) {
 
   const fetchCustomer = async () => {
     try {
-      const response = await fetch(`/api/customers/${resolvedParams.id}`)
+      const response = await fetch(`/api/customers/${resolvedParams.id}`, {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
       if (!response.ok) {
-        throw new Error('Müşteri bulunamadı')
+        if (response.status === 404) {
+          throw new Error('Müşteri bulunamadı')
+        } else if (response.status === 401) {
+          throw new Error('Oturum açmanız gerekiyor')
+        } else {
+          throw new Error(`Sunucu hatası: ${response.status}`)
+        }
       }
+      
       const data = await response.json()
       setCustomer(data)
       
       // Form değerlerini doldur
-      setValue('name', data.name)
-      setValue('email', data.email)
-      setValue('phone', data.phone)
+      setValue('name', data.name || '')
+      setValue('email', data.email || '')
+      setValue('phone', data.phone || '')
       setValue('address', data.address || '')
       setValue('notes', data.notes || '')
-      setValue('status', data.status)
+      setValue('status', data.status || 'ACTIVE')
     } catch (error) {
       console.error('Error fetching customer:', error)
-      toast.error('Müşteri bilgileri yüklenirken hata oluştu')
+      toast.error(error instanceof Error ? error.message : 'Müşteri bilgileri yüklenirken hata oluştu')
       router.push('/customers')
     } finally {
       setIsLoading(false)
@@ -113,14 +126,26 @@ export default function CustomerEditPage({ params }: CustomerEditPageProps) {
       })
 
       if (!response.ok) {
-        throw new Error('Müşteri güncellenemedi')
+        const errorData = await response.json().catch(() => ({}))
+        
+        if (response.status === 400) {
+          throw new Error(errorData.error || 'Geçersiz veri')
+        } else if (response.status === 401) {
+          throw new Error('Oturum açmanız gerekiyor')
+        } else if (response.status === 404) {
+          throw new Error('Müşteri bulunamadı')
+        } else {
+          throw new Error(errorData.error || 'Müşteri güncellenemedi')
+        }
       }
 
+      const updatedCustomer = await response.json()
+      setCustomer(updatedCustomer)
       toast.success('Müşteri başarıyla güncellendi')
       router.push(`/customers/${resolvedParams.id}`)
     } catch (error) {
       console.error('Error updating customer:', error)
-      toast.error('Müşteri güncellenirken hata oluştu')
+      toast.error(error instanceof Error ? error.message : 'Müşteri güncellenirken hata oluştu')
     } finally {
       setIsSaving(false)
     }

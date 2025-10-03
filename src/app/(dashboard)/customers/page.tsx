@@ -57,12 +57,22 @@ export default function CustomersPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (searchTerm) params.append('search', searchTerm)
       
-      const response = await fetch(`/api/customers?${params}`)
+      const response = await fetch(`/api/customers?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
       if (response.ok) {
         const data = await response.json()
         setCustomers(data.customers || [])
       } else {
-        toast.error('Müşteriler yüklenemedi')
+        if (response.status === 401) {
+          toast.error('Oturum açmanız gerekiyor')
+        } else {
+          toast.error('Müşteriler yüklenemedi')
+        }
       }
     } catch (error) {
       console.error('Failed to fetch customers:', error)

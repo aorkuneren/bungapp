@@ -48,6 +48,16 @@ export default function SettingsPage() {
   const [isClearingCache, setIsClearingCache] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [scanResults, setScanResults] = useState<any>(null)
+  
+  // Kullanıcı yönetimi state'leri
+  const [users, setUsers] = useState<any[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [showUserDialog, setShowUserDialog] = useState(false)
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false)
+  const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [isSavingUser, setIsSavingUser] = useState(false)
+  const [isDeletingUser, setIsDeletingUser] = useState(false)
 
   const fetchPriceRules = async () => {
     try {
@@ -123,6 +133,122 @@ export default function SettingsPage() {
       toast.error('Sistem bilgileri yüklenirken hata oluştu')
     } finally {
       setIsLoadingSystemInfo(false)
+    }
+  }
+
+  // Kullanıcı yönetimi fonksiyonları
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true)
+    try {
+      const response = await fetch('/api/users', {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+      } else {
+        if (response.status === 401) {
+          toast.error('Oturum açmanız gerekiyor')
+        } else {
+          toast.error('Kullanıcılar yüklenemedi')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
+      toast.error('Kullanıcılar yüklenirken hata oluştu')
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }
+
+  const handleCreateUser = async (userData: any) => {
+    setIsSavingUser(true)
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (response.ok) {
+        const newUser = await response.json()
+        setUsers(prev => [newUser, ...prev])
+        setShowUserDialog(false)
+        toast.success('Kullanıcı başarıyla oluşturuldu')
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Kullanıcı oluşturulamadı')
+      }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      toast.error('Kullanıcı oluşturulurken hata oluştu')
+    } finally {
+      setIsSavingUser(false)
+    }
+  }
+
+  const handleUpdateUser = async (userData: any) => {
+    if (!selectedUser) return
+    
+    setIsSavingUser(true)
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (response.ok) {
+        const updatedUser = await response.json()
+        setUsers(prev => prev.map(user => 
+          user.id === selectedUser.id ? updatedUser : user
+        ))
+        setShowEditUserDialog(false)
+        setSelectedUser(null)
+        toast.success('Kullanıcı başarıyla güncellendi')
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Kullanıcı güncellenemedi')
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      toast.error('Kullanıcı güncellenirken hata oluştu')
+    } finally {
+      setIsSavingUser(false)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return
+    
+    setIsDeletingUser(true)
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.id !== selectedUser.id))
+        setShowDeleteUserDialog(false)
+        setSelectedUser(null)
+        toast.success('Kullanıcı başarıyla silindi')
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Kullanıcı silinemedi')
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast.error('Kullanıcı silinirken hata oluştu')
+    } finally {
+      setIsDeletingUser(false)
     }
   }
 
@@ -385,6 +511,7 @@ export default function SettingsPage() {
     fetchPriceRules()
     fetchSystemSettings()
     fetchSystemInfo()
+    fetchUsers()
   }, [session, status, router])
 
   if (status === 'loading' || isLoading) {
@@ -567,35 +694,69 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Kullanıcılar</h3>
-                    <Button>
+                    <Button onClick={() => setShowUserDialog(true)}>
                       <Users className="mr-2 h-4 w-4" />
                       Yeni Kullanıcı
                     </Button>
                   </div>
                   
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Admin User</p>
-                        <p className="text-sm text-gray-500">admin@bungapp.com</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">ADMIN</span>
-                        <Button variant="outline" size="sm">Düzenle</Button>
-                      </div>
+                  {isLoadingUsers ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                      <p className="text-sm text-gray-500 mt-2">Kullanıcılar yükleniyor...</p>
                     </div>
-                    
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Resepsiyonist</p>
-                        <p className="text-sm text-gray-500">receptionist@bungapp.com</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">RESEPSIYONIST</span>
-                        <Button variant="outline" size="sm">Düzenle</Button>
-                      </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <Users className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                          <p>Henüz kullanıcı bulunmuyor</p>
+                        </div>
+                      ) : (
+                        users.map((user) => (
+                          <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-gray-500">{user.email}</p>
+                              <p className="text-xs text-gray-400">
+                                Oluşturulma: {new Date(user.createdAt).toLocaleDateString('tr-TR')}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                user.role === 'ADMIN' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {user.role === 'ADMIN' ? 'ADMIN' : 'RESEPSIYONIST'}
+                              </span>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user)
+                                  setShowEditUserDialog(true)
+                                }}
+                              >
+                                Düzenle
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user)
+                                  setShowDeleteUserDialog(true)
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Sil
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1209,6 +1370,79 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Kullanıcı Ekleme Dialog'u */}
+      <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Yeni Kullanıcı</DialogTitle>
+            <DialogDescription>
+              Sisteme yeni kullanıcı ekleyin
+            </DialogDescription>
+          </DialogHeader>
+          <UserForm 
+            onSubmit={handleCreateUser}
+            isSubmitting={isSavingUser}
+            onCancel={() => setShowUserDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Kullanıcı Düzenleme Dialog'u */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Kullanıcı Düzenle</DialogTitle>
+            <DialogDescription>
+              Kullanıcı bilgilerini güncelleyin
+            </DialogDescription>
+          </DialogHeader>
+          <UserForm 
+            user={selectedUser}
+            onSubmit={handleUpdateUser}
+            isSubmitting={isSavingUser}
+            onCancel={() => {
+              setShowEditUserDialog(false)
+              setSelectedUser(null)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Kullanıcı Silme Dialog'u */}
+      <Dialog open={showDeleteUserDialog} onOpenChange={setShowDeleteUserDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Kullanıcıyı Sil</DialogTitle>
+            <DialogDescription>
+              Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              <strong>{selectedUser?.name}</strong> ({selectedUser?.email}) kullanıcısı silinecek.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteUserDialog(false)
+                setSelectedUser(null)
+              }}
+            >
+              İptal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteUser}
+              disabled={isDeletingUser}
+            >
+              {isDeletingUser ? 'Siliniyor...' : 'Sil'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }
@@ -1385,6 +1619,119 @@ function PriceRuleForm({ rule, onSubmit, onCancel, isSubmitting }: PriceRuleForm
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Kaydediliyor...' : rule ? 'Güncelle' : 'Oluştur'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+// Kullanıcı Form Komponenti
+function UserForm({ 
+  user, 
+  onSubmit, 
+  isSubmitting, 
+  onCancel 
+}: { 
+  user?: any
+  onSubmit: (data: any) => void
+  isSubmitting: boolean
+  onCancel: () => void
+}) {
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    password: '',
+    role: user?.role || 'RESEPSIYONIST'
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.name || !formData.email) {
+      toast.error('Ad soyad ve e-posta alanları zorunludur')
+      return
+    }
+
+    if (!user && !formData.password) {
+      toast.error('Şifre alanı zorunludur')
+      return
+    }
+
+    if (formData.password && formData.password.trim() !== '' && formData.password.length < 6) {
+      toast.error('Şifre en az 6 karakter olmalıdır')
+      return
+    }
+
+    // Boş şifre alanını temizle
+    const submitData = {
+      ...formData,
+      password: formData.password.trim() === '' ? undefined : formData.password
+    }
+    
+    onSubmit(submitData)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Ad Soyad *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Kullanıcı adı soyadı"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">E-posta *</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          placeholder="ornek@email.com"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">
+          Şifre {!user && '*'}
+        </Label>
+        <Input
+          id="password"
+          type="password"
+          value={formData.password}
+          onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+          placeholder={user ? 'Yeni şifre (boş bırakırsanız değişmez)' : 'Şifre'}
+          required={!user}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="role">Rol *</Label>
+        <Select
+          value={formData.role}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Rol seçin" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="RESEPSIYONIST">Resepsiyonist</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          İptal
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Kaydediliyor...' : (user ? 'Güncelle' : 'Oluştur')}
         </Button>
       </DialogFooter>
     </form>
