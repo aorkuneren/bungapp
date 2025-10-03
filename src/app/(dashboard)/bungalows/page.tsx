@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
-import { Plus, Edit, Eye, Home, Search, Filter, Grid3X3, List, Check, X, Settings } from 'lucide-react'
+import { Plus, Edit, Eye, Home, Search, Filter, List, Check, X, Settings } from 'lucide-react'
 import Image from 'next/image'
 
 // Standart özellikler ve Türkçe karşılıkları
@@ -67,8 +67,7 @@ export default function BungalowsPage() {
   const [capacityFilter, setCapacityFilter] = useState<string>('all')
   const [priceSort, setPriceSort] = useState<string>('none')
   
-  // Görünüm ve seçim state'leri
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  // Seçim state'leri
   const [selectedBungalows, setSelectedBungalows] = useState<string[]>([])
   const [showBulkUpdate, setShowBulkUpdate] = useState(false)
   const [bulkUpdateData, setBulkUpdateData] = useState({
@@ -270,24 +269,10 @@ export default function BungalowsPage() {
             )}
           </div>
           <div className="flex items-center space-x-2">
-            {/* Görünüm Değiştirme */}
-            <div className="flex items-center border rounded-lg">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-r-none"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
+            {/* Liste Görünümü - Varsayılan */}
+            <div className="flex items-center text-sm text-gray-600">
+              <List className="h-4 w-4 mr-2" />
+              <span>Liste Görünümü</span>
             </div>
 
             {/* Toplu Güncelleme */}
@@ -526,65 +511,7 @@ export default function BungalowsPage() {
           </Card>
         </div>
 
-        {/* Bungalows Content */}
-        {viewMode === 'grid' ? (
-          /* Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBungalows.map((bungalow) => (
-              <Card key={bungalow.id} className="overflow-hidden">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{bungalow.name}</CardTitle>
-                    <Checkbox
-                      checked={selectedBungalows.includes(bungalow.id)}
-                      onCheckedChange={(checked: boolean) => 
-                        handleSelectBungalow(bungalow.id, checked)
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={bungalow.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {bungalow.status === 'ACTIVE' ? 'Aktif' : 'Pasif'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Kapasite:</span>
-                    <span className="font-medium">{bungalow.capacity} kişi</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Gecelik fiyat:</span>
-                    <div className="text-right">
-                      <span className="font-medium">₺{getPrice(bungalow.basePrice).toLocaleString()}</span>
-                      <div className="text-xs text-gray-500">
-                        {bungalow.priceIncludesVat ? 'KDV Dahil' : 'KDV Hariç'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 pt-4">
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link href={`/reservations/new?bungalow=${bungalow.id}`}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Rezervasyon
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link href={`/bungalows/${bungalow.id}/edit`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Düzenle
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          /* List View */
+        {/* Bungalows Content - Liste Görünümü */}
           <Card>
             <Table>
               <TableHeader>
@@ -673,7 +600,6 @@ export default function BungalowsPage() {
               </TableBody>
             </Table>
           </Card>
-        )}
 
         {filteredBungalows.length === 0 && bungalows.length > 0 && (
           <Card>
@@ -684,6 +610,22 @@ export default function BungalowsPage() {
               <Button variant="outline" onClick={clearFilters}>
                 <Filter className="mr-2 h-4 w-4" />
                 Filtreleri Temizle
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {bungalows.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Home className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz bungalov yok</h3>
+              <p className="text-gray-500 mb-4">İlk bungalovunuzu oluşturmak için aşağıdaki butona tıklayın.</p>
+              <Button asChild>
+                <Link href="/bungalows/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Bungalov Oluştur
+                </Link>
               </Button>
             </CardContent>
           </Card>
